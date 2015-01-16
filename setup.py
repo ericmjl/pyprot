@@ -30,7 +30,7 @@ For more details and examples please see the package documentation.
 
 The original project is hosted and developed at: https://github.com/rasbt/pyprot
 
- Contact
+Contact
 =============
 
 If you have any questions or comments about PyProt, please feel free to contact me via
