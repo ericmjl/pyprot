@@ -13,9 +13,10 @@ import os
 class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
     """ Object that allows operations with protein files in PDB format. """
 
-    def __init__(self, file_cont = [], pdb_code = ""):
+    def __init__(self, file_cont=[], pdb_code=""):
         self.cont = []
         self.code = pdb_code.lower()
+        self.coord = None # new pandas DataFrame coordinate section
         self.atom = []
         self.atom_ter = []
         self.hetatm = []
@@ -47,6 +48,9 @@ class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
              self.calpha = [row for row in self.mainchain if row[13:15] == 'CA']
              self.conect = [row for row in self.cont if row.startswith('CONECT')]
              self.chains = self._get_chains()
+             
+        if file_cont:
+            self.coord = self.parse_coordsection(dest=file_cont)
 
     def __del__(self):
         del self

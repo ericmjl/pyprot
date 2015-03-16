@@ -3,11 +3,90 @@ Class inhereted by the `Pdb` base class in `pdbmain`.
 Contains methods specialized for PDB file processing.
 """
 
+
 import urllib
+import numpy as np
+import pandas as pd
+import os
 
 class PdbIO(object):
     def __init__():
         pass
+        
+    def parse_coordsection(self, dest):
+        """
+        Parses a PDB file into a pandas DataFrame
+
+        Parameters
+        ----------
+        dest : `str`.
+          Path to the target file. E.g., `"/home/.../desktop/my_pdb.pdb"`
+          or list of file contents.
+        
+        Returns
+        ----------
+        df : DataFrame.
+
+        """
+        rec = [['record', 0, 6],
+             ['atomnum', 6, 11],
+             ['atomname', 12, 16],
+             ['altloc', 17, 18], 
+             ['residuename', 17, 20], 
+             ['chainid', 21, 22], 
+             ['residuenum', 22, 26], 
+             ['insertion', 26, 27],
+             ['xcoord', 30, 38], 
+             ['ycoord', 38, 46], 
+             ['zcoord', 47, 54], 
+             ['occupancy', 54, 60], 
+             ['bfactor', 60, 66],
+             ['segmentid', 72, 76], 
+             ['element', 76, 78], 
+             ['charge', 79, 80]]
+             
+        coords = []
+
+        if isinstance(dest, str) and os.path.isfile(dest):
+            in_file = open(dest, 'r')
+        else:
+            in_file = dest
+
+
+        for line in in_file:
+            if not line.startswith(('ATOM', 'HETATM', 'TER')):
+                continue
+            row = []
+            for r in rec:
+                sline = line.strip()
+                try:
+                    row.append(sline[r[1]:r[2]].strip())
+                except IndexError:
+                    pass
+            row.append(line)
+            coords.append(row)
+    
+        df = pd.DataFrame(coords, columns=[c[0] for c in rec] + ['origline'])
+        df.tail()
+    
+        if isinstance(dest, str) and os.path.isfile(dest):
+            in_file.close()   
+    
+    
+        for c in ('atomnum', 'residuenum', 'segmentid', 'charge'):
+            try:
+                df[c] = df[c].astype(int)
+            except ValueError:
+                pass
+        for c in ('xcoord', 'ycoord', 'zcoord', 'occupancy', 'bfactor'):
+            try:
+                df[c] = df[c].astype(float)
+            except ValueError:
+                pass
+
+        return df
+
+            
 
     def save_pdb(self, dest):
         """
