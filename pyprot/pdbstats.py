@@ -11,7 +11,7 @@ class PdbStats(object):
     def __init__(self):
         pass
 
-    def rmsd(self, sec_molecule, ligand=False, atoms="no_h"):
+    def rmsd_(self, sec_molecule, ligand=False, atoms="no_h"):
         """
         Calculates the Root Mean Square Deviation (RMSD) between two
         protein or ligand molecules in PDB format.
@@ -69,7 +69,66 @@ class PdbStats(object):
             rmsd = round(( total / len(coords1) )**0.5, 4)
         return rmsd
 
+    def rmsd(self, sec_molecule, ligand=False, atoms="no_h"):
+        """
+        Calculates the Root Mean Square Deviation (RMSD) between two
+        protein or ligand molecules in PDB format.
+        Requires that both molecules have the same number of atoms in the
+        same numerical order.
 
+        Parameters
+        ----------
+        
+        sec_molecule : `Pdb` object.
+          The second molecule as `PdbObj` object.
+          
+        ligand : `bool` (default: `False`).
+          If True, calculates the RMSD between two
+          ligand molecules (based on HETATM entries), else RMSD
+          between two protein molecules (ATOM entries) is calculated.
+          
+        atoms : `str` (default: `'no_h'`)
+          A string `'all'`, `'c'`, `'no_h'`, or `'ca'`.
+          `"all"`: Includes all atoms in the RMSD calculation.
+          `"c"`: Only considers carbon atoms.
+          `"no_h"`: Considers all atoms but hydrogen atoms.
+          `"ca"`: Compares only C-alpha protein atoms.
+        
+        Returns
+        ----------
+
+        rmsd : `float` or `None`.
+          Calculated RMSD value as `float` or `None` if RMSD not be
+          calculated.
+
+        """
+        rmsd = None
+        
+        df1, df2 = self.coord, sec_molecule.coord
+        
+        if not ligand:
+            df1, df2 = df1[df1['record'] == 'ATOM'], df2[df2['record'] == 'ATOM']
+        else:
+            df1, df2 = df1[df1['record'] == 'HETATM'], df2[df2['record'] == 'HETATM']
+            
+        if atoms == "c":
+            df1, df2 = df1[df1['element'] == 'C'], df2[df2['element'] == 'C']
+
+        elif atoms == "no_h":
+            df1, df2 = df1[df1['element'] != 'H'], df2[df2['element'] != 'H']
+            
+        elif atoms == "ca":
+            df1, df2 = df1[df1['atomname'] == 'CA'], df2[df2['atomname'] == 'CA']
+
+        if (df1.shape[0] == df2.shape[0]):
+            ssquared = ( ((df1['xcoord'] - df2['xcoord'])**2).sum() + 
+                         ((df1['ycoord'] - df2['ycoord'])**2).sum() + 
+                         ((df1['zcoord'] - df2['zcoord'])**2).sum()) 
+            rmsd = round( (ssquared / df1.shape[0])**0.5 , 4)
+            
+        #print((ssquared / df1.shape[0])**0.5)    
+        return rmsd
+        
 
     def center_of_mass(self, protein=True, ligand=False):
         """
