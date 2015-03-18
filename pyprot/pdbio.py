@@ -54,7 +54,7 @@ class PdbIO(object):
 
 
         for line in in_file:
-            if not line.startswith(('ATOM', 'HETATM', 'TER')):
+            if not line.startswith(('ATOM', 'HETATM')):
                 continue
             row = []
             for r in rec:

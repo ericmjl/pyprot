@@ -51,6 +51,9 @@ class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
              
         if file_cont:
             self.coord = self.parse_coordsection(dest=file_cont)
+            ##g = self.coord.columns.to_series().groupby(self.coord.dtypes).groups
+            ##print(g)
+            #print(self.coord['ycoord'])
 
     def __del__(self):
         del self
