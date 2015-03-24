@@ -16,7 +16,7 @@ class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
     def __init__(self, file_cont=[], pdb_code=""):
         self.cont = []
         self.code = pdb_code.lower()
-        self.coord = None # new pandas DataFrame coordinate section
+        self.coord_ary = None # new pandas DataFrame coordinate section
         self.atom = []
         self.atom_ter = []
         self.hetatm = []
@@ -39,7 +39,6 @@ class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
         else:
             self.cont = self.fetch_rcsb(self.code)
             
-
         if self.cont:
              self.atom = [row for row in self.cont if row.startswith('ATOM')]
              self.atom_ter = [row for row in self.cont if row.startswith(('ATOM', 'TER'))]
@@ -50,11 +49,8 @@ class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
              self.chains = self._get_chains()
              
         if file_cont:
-            self.coord = self.parse_coordsection(dest=file_cont)
-            ##g = self.coord.columns.to_series().groupby(self.coord.dtypes).groups
-            ##print(g)
-            #print(self.coord['ycoord'])
-
+            self.coord_ary = self.coordsec_to_ary(dest=file_cont)
+    
     def __del__(self):
         del self
 

@@ -93,6 +93,7 @@ class PdbStats(object):
           `"c"`: Only considers carbon atoms.
           `"no_h"`: Considers all atoms but hydrogen atoms.
           `"ca"`: Compares only C-alpha protein atoms.
+          `"mc"`: Main Chain atoms CA, N, C, O
         
         Returns
         ----------
@@ -104,7 +105,10 @@ class PdbStats(object):
         """
         rmsd = None
         
-        df1, df2 = self.coord, sec_molecule.coord
+        if not atoms in ('all', 'c', 'no_h', 'ca', 'mc'):
+            raise ValueError('Atoms must be all, c, no_h, ca, or mc')
+        
+        df1, df2 = self.coord_ary, sec_molecule.coord_ary
         
         if not ligand:
             df1, df2 = df1[df1['record'] == 'ATOM'], df2[df2['record'] == 'ATOM']
@@ -119,12 +123,20 @@ class PdbStats(object):
             
         elif atoms == "ca":
             df1, df2 = df1[df1['atomname'] == 'CA'], df2[df2['atomname'] == 'CA']
+            
+        elif atoms == "mc":
+            df1 = df1[ (df1['atomname'] == 'CA') | (df1['atomname'] == 'C') | (df1['atomname'] == 'N') | (df1['atomname'] == 'O')]
+            df2 = df2[ (df2['atomname'] == 'CA') | (df2['atomname'] == 'C') | (df2['atomname'] == 'N') | (df2['atomname'] == 'O')]
 
-        if (df1.shape[0] == df2.shape[0]):
-            ssquared = ( ((df1['xcoord'] - df2['xcoord'])**2).sum() + 
-                         ((df1['ycoord'] - df2['ycoord'])**2).sum() + 
-                         ((df1['zcoord'] - df2['zcoord'])**2).sum()) 
-            rmsd = round( (ssquared / df1.shape[0])**0.5 , 4)
+        if not df1.shape[0] == df2.shape[0] or not (df1['atomname'] == df2['atomname']).all():
+            print("Warning, atom names in rows don't match!")
+            return rmsd
+
+        ssquared = ( ((df1['xcoord'].values - df2['xcoord'].values)**2).sum() + 
+                         ((df1['ycoord'].values - df2['ycoord'].values)**2).sum() + 
+                         ((df1['zcoord'].values - df2['zcoord'].values)**2).sum()) 
+                         
+        rmsd = round( (ssquared / df1.shape[0])**0.5 , 4)
             
         #print((ssquared / df1.shape[0])**0.5)    
         return rmsd

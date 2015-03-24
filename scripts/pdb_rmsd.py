@@ -29,13 +29,17 @@ parser.add_argument('-r', '--reference', type=str, help='Reference PDB file.')
 parser.add_argument('-t', '--target', type=str, help='Target PDB file.')
 
 parser.add_argument('-l', '--ligand', action='store_true', help='Calculates RMSD between ligand (HETATM) atoms.')
-parser.add_argument('-c', '--carbon', action='store_true', help='Calculates the RMSD between carbon atoms only.')
-parser.add_argument('-ca', '--calpha', action='store_true', help='Calculates the RMSD between alpha-carbon atoms only.')
+parser.add_argument('-c', '--carbon', action='store_true', default=False, help='Calculates the RMSD between carbon atoms only.')
+parser.add_argument('-mc', '--mainchain', action='store_true', default=False, help='Calculates RMSD between protein main chain atoms.')
+parser.add_argument('-ca', '--calpha', action='store_true',  default=False, help='Calculates the RMSD between alpha-carbon atoms only.')
 
 
 args = parser.parse_args()
 
-
+if args.ligand and args.mainchain:
+    print('--ligand and --mainchain are incompatible options.')
+    parser.print_help()
+    quit()    
     
 if not args.reference:
     print('{0}\nPlease provide a reference input PDB file.\n{0}'.format(50* '-'))
@@ -65,5 +69,8 @@ elif args.calpha:
     print(pdb1.rmsd(sec_molecule=pdb2, ligand=False, atoms="ca"))
 elif args.carbon:
     print(pdb1.rmsd(sec_molecule=pdb2, ligand=False, atoms="c"))
+elif args.mainchain:
+    print(pdb1.rmsd(sec_molecule=pdb2, ligand=False, atoms="mc"))
 else:
+    print(True)
     print(pdb1.rmsd(sec_molecule=pdb2, ligand=False, atoms="no_h"))

@@ -13,7 +13,7 @@ class PdbIO(object):
     def __init__():
         pass
         
-    def parse_coordsection(self, dest):
+    def coordsec_to_ary(self, dest):
         """
         Parses a PDB file into a pandas DataFrame
 
@@ -31,7 +31,7 @@ class PdbIO(object):
         rec = [['record', 0, 6],
              ['atomnum', 6, 11],
              ['atomname', 12, 16],
-             ['altloc', 17, 18], 
+             ['altloc', 16, 17], 
              ['residuename', 17, 20], 
              ['chainid', 21, 22], 
              ['residuenum', 22, 26], 
@@ -43,7 +43,7 @@ class PdbIO(object):
              ['bfactor', 60, 66],
              ['segmentid', 72, 76], 
              ['element', 76, 78], 
-             ['charge', 79, 80]]
+             ['charge', 78, 80]]
              
         coords = []
 
@@ -54,7 +54,7 @@ class PdbIO(object):
 
 
         for line in in_file:
-            if not line.startswith(('ATOM', 'HETATM')):
+            if not line.startswith(('ATOM', 'HETATM', 'ANISOU','TER')):
                 continue
             row = []
             for r in rec:
@@ -75,18 +75,69 @@ class PdbIO(object):
     
         for c in ('atomnum', 'residuenum', 'segmentid', 'charge'):
             try:
+                #df[c] = df[c].apply(lambda x: None if not x else x)
                 df[c] = df[c].astype(int)
             except ValueError:
                 pass
         for c in ('xcoord', 'ycoord', 'zcoord', 'occupancy', 'bfactor'):
             try:
+                df[c] = df[c].apply(lambda x: np.nan if not x else x)
                 df[c] = df[c].astype(float)
             except ValueError:
                 pass
 
         return df
 
-            
+
+    def coordsec_to_file(self, dest):
+        """
+        Writes the contents of the `coord_ary` DataFrame to file.
+
+        Parameters
+        ----------
+        dest : `str`.
+          Path to the target file. E.g., `"/home/.../desktop/my_pdb.pdb"`
+        
+        """
+        df = self.coord_ary.copy()
+        df.drop('origline', axis=1, inplace=True)
+
+        df['record'] = df['record'].apply(lambda x: x + (6-len(x))*' ')
+        df['atomnum'] = df['atomnum'].apply(lambda x: (5-len(str(x)))*' ' + str(x))
+        df['atomname'] = df['atomname'].apply(lambda x: '  ' + str(x) + (3-len(str(x)))*' ' )
+        df['residuename'] = df['residuename'].apply(lambda x: str(x) + (3-len(str(x)))*' ' )
+        df['altloc'] = df['altloc'].apply(lambda x: ' ' if not x else x)
+        df['chainid'] = df['chainid'].apply(lambda x: ' ' + x)
+        df['residuenum'] = df['residuenum'].apply(lambda x: ' '*(4-len(str(x))) + str(x))
+        df['insertion'] = df['insertion'].apply(lambda x: ' ' if not x else x)
+        df['segmentid'] = df['segmentid'].apply(lambda x: ' '*(6-len(str(x))) + str(x))
+        df['element'] = df['element'].apply(lambda x: ' '*(6-len(str(x))) + str(x))
+        df['charge'] = df['charge'].apply(lambda x: ' '*(2-len(str(x))) + str(x))
+
+        # fix TER entries later
+        df_nt = df[df['record'] != 'TER']
+        df_nt['xcoord'] = df_nt['xcoord'].apply(lambda x: ' '*(11-len('%.3f' % x)) + '%.3f' % x)
+        df_nt['ycoord'] = df_nt['ycoord'].apply(lambda x: ' '*(8-len(str('%.3f' % x))) + '%.3f' % x)
+        df_nt['zcoord'] = df_nt['zcoord'].apply(lambda x: ' '*(8-len(str('%.3f' % x))) + '%.3f' % x)
+        df_nt['occupancy'] = df_nt['occupancy'].apply(lambda x: ' '*(6-len('%.2f' % x)) + '%.2f' % x)
+        df_nt['bfactor'] = df_nt['bfactor'].apply(lambda x: ' '*(6-len('%.2f' % x)) + '%.2f' % x)
+
+        df = df_nt[df_nt.index == df.index]        
+        
+        # fix TER
+        df = df.where((pd.notnull(df)), ' ')
+        for r in ('xcoord','ycoord','zcoord','occupancy','bfactor'):
+            df.loc[df['record'] == 'TER   ', r] = df.loc[df['record'] == 'TER   ', r]\
+                    .apply(lambda x: x.replace('nan', '   '))
+                    
+        np.savetxt(dest, 
+                   df.values, 
+                   delimiter='', 
+                   newline='\n', 
+                   header='', 
+                   footer='',
+                   fmt='%s',
+                   comments='# ')
 
     def save_pdb(self, dest):
         """

@@ -28,6 +28,7 @@ class PdbFormat(object):
         trimmed = [row[:width] for row in self.cont]
         return trimmed
 
+
     def trim_rows(self, allowed=('ATOM', 'HETATM', 'TER', 'END')):
         """
         Removes all rows that do not begin with a str in 'allowed'.  
