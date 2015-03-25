@@ -11,4 +11,4 @@ def test_atom_ter_hetatm_trio():
     
     with open(out_pdb, 'r') as in_1, open(expected_pdb, 'r') as in_2:
         for line1, line2 in zip(in_1, in_2):
-            assert(line1 == line)
+            assert(line1 == line2)

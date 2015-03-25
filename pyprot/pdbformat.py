@@ -35,14 +35,12 @@ class PdbFormat(object):
         
         Parameters
         ----------
-        
         allowed : `tuple`, `set`, or `list`.
           An iterable of strings that at line starts to mark lines that are
           retained while trimming.
         
         Returns
         ----------
-
         trimmed : `list`.
           List of PDB file contents after trimming. Every list item is a `str` of
           PDB file contents.
@@ -58,19 +56,22 @@ class PdbFormat(object):
         
         Parameters
         ----------
-        
         start : `int`.
           Number of the first atom after renumbering.
         
         Returns
         ----------
-
         renumbered : `list`.
           List of PDB file contents after renumbering. Every list item is a `str` of
           PDB file contents.
-            
+        
+        mapping : `dict`
+          String mapping of 5 character renumbered atoms. Dictionary keys are the
+          original atom numbers, values are the renumbered ones.    
+          
         """
-        renumbered = list()
+        mapping = {}
+        out = list()
         count = start
         for row in self.cont:
             if len(row) > 5:
@@ -78,49 +79,74 @@ class PdbFormat(object):
                     num = str(count)
                     while len(num) < 5:
                         num = ' ' + num
-                    row = '%s%s%s' %(row[:6], num, row[11:])
+                    mapping[row[6:11]] = num
+                    row = '%s%s%s' % (row[:6], num, row[11:])
                     count += 1
-            renumbered.append(row)
-        return renumbered
+            out.append(row)
+        return out, mapping
 
 
-    def renumber_residues(self, start=1):
+    def renumber_conect(self, mapping):
+        """ Renumbers conect entries in a PDB file. """
+        new_rows = []
+        bonds = [(i, i+5) for i in range(6, 75, 5)]
+        for row in self.cont:
+            if len(row) < 6:
+                continue
+            if row.startswith('CONECT'):
+                for b in bonds:
+                    target = row[b[0]:b[1]]
+                    if not target.strip() or target not in mapping:
+                        continue
+                    row = row[:b[0]] + mapping[target] + row[b[1]:]
+            new_rows.append(row)
+        return new_rows
+
+
+    def renumber_residues(self, start=1, reset=False):
         """"
         Renumbers residues in a PDB file.  
         
         Parameters
-        ----------
-        
+        ----------       
         start : `int`.
           Number of the first residue after renumbering.
         
         Returns
         ----------
-
         renumbered : `list`.
           List of PDB file contents after renumbering. Every list item is a `str` of
           PDB file contents.
+
+        mapping : `dict`
+          String mapping of 5 character renumbered residues. Dictionary keys are the
+          original residue numbers, values are the renumbered ones.    
             
         """
-        renumbered = list()
+        mapping = {}
+        out = list()
         count = start - 1
         cur_res = ''
         for row in self.cont:
             if len(row) > 25:
                 if row.startswith(('ATOM', 'HETATM', 'TER', 'ANISOU')):
-                    next_res = row[22:27].strip() # account for letters in res., e.g., '1A'
+                    next_res = row[22:27].strip()  # account for letters in res., e.g., '1A'
+
                     if next_res != cur_res:
                         count += 1
                         cur_res = next_res
                     num = str(count)
                     while len(num) < 3:
                         num = ' ' + num
-                    new_row = '%s%s' %(row[:23], num)
+                    new_row = '%s%s' % (row[:23], num)
                     while len(new_row) < 29:
                         new_row += ' '
                     xcoord = row[30:38].strip()
                     while len(xcoord) < 9:
                         xcoord = ' ' + xcoord
-                    row = '%s%s%s' %(new_row, xcoord, row[38:])
-            renumbered.append(row)
-        return renumbered
+                    mapping[row[23:26]] = num
+                    row = '%s%s%s' % (new_row, xcoord, row[38:])
+                    if row.startswith('TER') and reset:
+                        count = start - 1
+            out.append(row)
+        return out, mapping

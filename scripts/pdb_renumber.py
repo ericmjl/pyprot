@@ -22,10 +22,12 @@ parser = argparse.ArgumentParser(
 
 
 parser.add_argument('-i', '--input', help='Input PDB file')
+parser.add_argument('-o', '--output', help='Output PDB file')
 parser.add_argument('-s', '--start', help='Number of the first residue in the renumbered file (default = 1)')
 parser.add_argument('-a', '--atoms' ,action='store_true', help='Renumbers atoms')
 parser.add_argument('-r', '--residues', action='store_true', help='Renumbers residues')
 parser.add_argument('-c', '--chainreset', action='store_true', help='Resets the residue renumbering after encountering a new chain.')
+parser.add_argument('-v', '--version', action='version', version='v. 1.0')
 
 args = parser.parse_args()
 
@@ -33,7 +35,7 @@ if not args.input:
     print('{0}\nPlease provide an input file.\n{0}'.format(50* '-'))
     parser.print_help()
     quit()
-
+    
 if not args.start:
     start = 1
 else:
@@ -45,12 +47,21 @@ if not args.atoms and not args.residues:
     quit()
 
 pdb1 = pyprot.Pdb(args.input)
-if args.atoms:
-    pdb1.cont = pdb1.renumber_atoms(start=start)
-if args.residues:
-    pdb1.cont = pdb1.renumber_residues(start=start, reset=args.chainreset)
 
-for line in pdb1.cont:
-    print(line)
+if args.residues:
+    pdb1.cont, residue_mapping = pdb1.renumber_residues(start=start, reset=args.chainreset)
+
+if args.atoms:
+    pdb1.cont, atom_mapping = pdb1.renumber_atoms(start=start)
+    pdb1.cont = pdb1.renumber_conect(atom_mapping)
+    
+if not args.output:
+    for line in pdb1.cont:
+        print(line)
+else:
+    with open(args.output, 'w') as out:
+        for line in pdb1.cont:
+            out.write(line + '\n')
+
 
 
