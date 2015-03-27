@@ -13,7 +13,7 @@ import os
 class Pdb(PdbIO, PdbStats, PdbManip, PdbFormat, PdbConvert):
     """ Object that allows operations with protein files in PDB format. """
 
-    def __init__(self, file_cont=[], pdb_code=""):
+    def __init__(self, file_cont=None, pdb_code=""):
         self.cont = []
         self.code = pdb_code.lower()
         self.coord_ary = None # new pandas DataFrame coordinate section
